@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">lsp_client</string>
+    <string name="msg_loading">Loading</string>
+</resources>
