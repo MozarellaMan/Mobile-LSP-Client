@@ -8,6 +8,7 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
@@ -40,16 +41,15 @@ fun ScreenContent() {
                     {
                         Text(text = "Connect")
                     }
-                    if (connecting) {
-                        CircularProgressIndicator()
-                    }
                 }
             }
-            Spacer(Modifier.preferredSize(16.dp))
+        }
+        Row {
             if (response.isNotEmpty() && ipAddress.isNotEmpty() && !connecting)  {
                 Text(response)
+            } else if (connecting) {
+                CircularProgressIndicator(modifier = Modifier.scale(0.7F))
             }
-
         }
 
     }

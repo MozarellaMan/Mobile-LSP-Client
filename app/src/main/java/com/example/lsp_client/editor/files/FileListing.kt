@@ -45,8 +45,7 @@ fun FileItem(fileName: String = "default", isDirectory: Boolean = false, onClick
                 if (isDirectory) {
                     Icon(imageVector = Icons.Filled.Menu, tint = Color.White)
                 }
-                Spacer(Modifier.preferredSize(padding))
-                Text(text = fileName, color = Color.White)
+                    Text(text = fileName, color = Color.White)
             }
         }
     }
