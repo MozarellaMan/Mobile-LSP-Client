@@ -1,20 +1,22 @@
 package com.example.lsp_client.server
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import ru.gildor.coroutines.okhttp.await
-import java.io.IOException
+import com.example.lsp_client.editor.files.FileNode
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.coroutines.awaitObjectResponseResult
+import com.github.kittinunf.fuel.coroutines.awaitStringResponseResult
+import com.github.kittinunf.fuel.serialization.kotlinxDeserializerOf
 
-
-suspend fun testConnect(address: String): String {
-    val client = OkHttpClient.Builder().build()
-    val request = Request.Builder().url(address).build()
-
-    val result = client.newCall(request).await()
-    println("code: ${result.code}: ${result.message}")
-    return result.message
+suspend fun getDirectory(ip: String): FileNode {
+    val (_, _, result) = Fuel.get("http://$ip/code/directory")
+        .awaitObjectResponseResult<FileNode>(kotlinxDeserializerOf())
+    return result.fold(
+        { data -> data},
+        { error ->
+            println("An error of type ${error.exception} happened: ${error.message}")
+            FileNode()
+        }
+    )
 }
 
 class ConnViewModel : ViewModel() {
@@ -23,12 +25,10 @@ class ConnViewModel : ViewModel() {
     }
 
     private suspend fun connect(ip: String): String {
-        return try {
-            testConnect("http://$ip/health")
-        } catch (e: IOException) {
-            e.printStackTrace()
-            e.toString()
-            return "Connection failed"
-        }
+        val (_, _, result) = Fuel.get("http://$ip/health").awaitStringResponseResult()
+        return result.fold(
+            { "OK ✅" },
+            { error -> "An error of type ${error.exception} happened: ${error.message}" }
+        )
     }
 }

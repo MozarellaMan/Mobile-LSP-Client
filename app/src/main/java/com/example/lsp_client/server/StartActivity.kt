@@ -1,6 +1,6 @@
 package com.example.lsp_client.server
 
-import androidx.compose.foundation.Text
+import androidx.compose.material.Text
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
@@ -11,14 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
-import androidx.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.coroutines.launch
 
 @Preview
 @Composable
 fun ScreenContent() {
     val prompt = "Address"
-    var ipAddress by remember { mutableStateOf("") }
+    var ipAddress by remember { mutableStateOf("10.0.2.2:8001") }
     var connecting by remember { mutableStateOf( false) }
     val connectionViewModel: ConnViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
@@ -44,10 +44,12 @@ fun ScreenContent() {
                         CircularProgressIndicator()
                     }
                 }
-                if (response.isNotEmpty() && ipAddress.isNotEmpty() && !connecting)  {
-                    Text(text = response, modifier = Modifier.padding(8.dp))
-                }
             }
+            Spacer(Modifier.preferredSize(16.dp))
+            if (response.isNotEmpty() && ipAddress.isNotEmpty() && !connecting)  {
+                Text(response)
+            }
+
         }
 
     }
