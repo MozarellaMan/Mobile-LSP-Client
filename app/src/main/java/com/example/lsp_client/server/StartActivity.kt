@@ -2,6 +2,7 @@ package com.example.lsp_client.server
 
 import androidx.compose.material.Text
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.OutlinedTextField
@@ -13,11 +14,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 
-@Preview
 @Composable
-fun ScreenContent() {
+fun StartupScreen() {
     val prompt = "Address"
     var ipAddress by remember { mutableStateOf("10.0.2.2:8001") }
     var connecting by remember { mutableStateOf( false) }
@@ -51,6 +56,5 @@ fun ScreenContent() {
                 CircularProgressIndicator(modifier = Modifier.scale(0.7F))
             }
         }
-
     }
 }
