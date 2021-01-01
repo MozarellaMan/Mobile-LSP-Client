@@ -17,6 +17,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class FileNode(val path: String = "", val name: String = "", @SerialName("type") val fileType: String = "", val children: List<FileNode> = emptyList()) {
+    fun isDirectory(): Boolean {
+        return this.fileType == "directory"
+    }
     fun isEmpty(): Boolean {
         return this.name.isBlank() && this.path.isBlank() && this.fileType.isBlank() && this.children.isEmpty()
     }
@@ -24,7 +27,7 @@ data class FileNode(val path: String = "", val name: String = "", @SerialName("t
 
 @Composable
 fun DrawFileNode(fileNode: FileNode) {
-    FileItem(fileName = fileNode.name, isDirectory = fileNode.fileType ==  "directory", onClick = {})
+    FileItem(fileName = fileNode.name, isDirectory = fileNode.isDirectory(), onClick = {})
     if (fileNode.children.isNotEmpty()) {
         for (child in fileNode.children) {
             DrawFileNode(child)

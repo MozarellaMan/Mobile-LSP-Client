@@ -1,11 +1,8 @@
 package com.example.lsp_client.server
 
-import androidx.compose.material.Text
+import androidx.navigation.compose.navigate
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Button
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,16 +10,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
-import androidx.compose.ui.tooling.preview.Preview
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.consumeAsFlow
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 
 @Composable
-fun StartupScreen() {
+fun StartupScreen(navController: NavController) {
     val prompt = "Address"
     var ipAddress by remember { mutableStateOf("10.0.2.2:8001") }
     var connecting by remember { mutableStateOf( false) }
@@ -32,7 +24,7 @@ fun StartupScreen() {
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-            Text("Enter proxy IP address:", color = Color.White)
+            Text("Enter proxy IP address:", color = Color.White, style = MaterialTheme.typography.h6)
             OutlinedTextField(value = ipAddress, onValueChange = { ipAddress = it }, label = { Text(prompt) })
             Row(modifier = Modifier.padding(24.dp)) {
                 if (ipAddress.isNotEmpty()) {
@@ -52,6 +44,7 @@ fun StartupScreen() {
         Row {
             if (response.isNotEmpty() && ipAddress.isNotEmpty() && !connecting)  {
                 Text(response)
+                if (response == "OK ✅") navController.navigate("editor/$ipAddress")
             } else if (connecting) {
                 CircularProgressIndicator(modifier = Modifier.scale(0.7F))
             }
