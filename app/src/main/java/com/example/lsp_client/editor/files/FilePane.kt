@@ -9,8 +9,8 @@ import com.example.lsp_client.editor.files.DrawFileNode
 import com.example.lsp_client.editor.files.FileNode
 
 @Composable
-fun FilePane(rootFileNode: FileNode) {
+fun FilePane(rootFileNode: FileNode, onClick: () -> Unit) {
     Column (modifier = Modifier.padding(4.dp)) {
-        DrawFileNode(rootFileNode)
+        DrawFileNode(rootFileNode, onClick)
     }
 }

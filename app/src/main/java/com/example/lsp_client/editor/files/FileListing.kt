@@ -23,20 +23,24 @@ data class FileNode(val path: String = "", val name: String = "", @SerialName("t
     fun isEmpty(): Boolean {
         return this.name.isBlank() && this.path.isBlank() && this.fileType.isBlank() && this.children.isEmpty()
     }
+
+    fun getPath(root: FileNode): String {
+        return this.path.removePrefix("${root.path}/")
+    }
 }
 
 @Composable
-fun DrawFileNode(fileNode: FileNode) {
-    FileItem(fileName = fileNode.name, isDirectory = fileNode.isDirectory(), onClick = {})
+fun DrawFileNode(fileNode: FileNode, onClick: () -> Unit) {
+    FileItem(fileNode, onClick)
     if (fileNode.children.isNotEmpty()) {
         for (child in fileNode.children) {
-            DrawFileNode(child)
+            DrawFileNode(child, onClick)
         }
     }
 }
 
 @Composable
-fun FileItem(fileName: String = "default", isDirectory: Boolean = false, onClick: () -> Unit) {
+fun FileItem(fileNode: FileNode, onClick: () -> Unit) {
     val padding = 16.dp
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
             .padding(padding)
@@ -45,10 +49,10 @@ fun FileItem(fileName: String = "default", isDirectory: Boolean = false, onClick
     ) {
         Column {
             Row {
-                if (isDirectory) {
+                if (fileNode.isDirectory()) {
                     Icon(imageVector = Icons.Filled.Menu, tint = Color.White)
                 }
-                    Text(text = fileName, color = Color.White)
+                    Text(text = fileNode.name, color = Color.White)
             }
         }
     }

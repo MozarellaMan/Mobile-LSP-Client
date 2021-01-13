@@ -3,10 +3,8 @@ package com.example.lsp_client.editor
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.CoreTextField
 import androidx.compose.material.*
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.liveData
 import com.example.lsp_client.editor.files.FileNode
 import com.example.lsp_client.server.getDirectory
 import androidx.compose.material.icons.Icons
@@ -21,48 +19,68 @@ import androidx.compose.ui.Alignment
 import com.example.lsp_client.server.startSession
 import com.example.lsp_client.ui.purple700
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.InternalTextApi
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.sp
-import com.example.lsp_client.server.LanguageServerSocket
+import androidx.lifecycle.*
+import com.example.lsp_client.server.getFile
 import com.example.lsp_client.server.testInit
 import io.ktor.http.cio.websocket.*
-import io.ktor.utils.io.*
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
 
 
 class EditorViewModel(var address: String = ""): ViewModel() {
-    val directory: LiveData<FileNode> = liveData {
-        val response = if (address.isBlank()) FileNode() else getDirectory(address)
-        emit(response)
+    val directory = MutableLiveData<FileNode>()
+    var currentPath: String = ""
+    var outgoing: SendChannel<Frame> = Channel()
+    var currentFile = MutableLiveData<String>()
+
+    fun getCurrentFile() {
+        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
+        viewModelScope.launch {
+            currentFile.value = getFile(address,currentPath)
+        }
     }
 
-    var outgoing: SendChannel<Frame> = Channel()
-
+    fun getFileDirectory() {
+        if (address.isBlank()) return
+        viewModelScope.launch {
+            directory.value = getDirectory(address)
+        }
+    }
 }
 
+@InternalTextApi
 @Composable
 fun Editor(ipAddress: String, editorViewModel: EditorViewModel = viewModel()) {
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
-    val directory: FileNode by editorViewModel.directory.observeAsState(FileNode())
+    val rootDirectory: FileNode by editorViewModel.directory.observeAsState(FileNode())
+    val currentFile: String by editorViewModel.currentFile.observeAsState("")
     val webSocketScope = rememberCoroutineScope()
     val listenerScope = rememberCoroutineScope()
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Open)
     val messageFlow by remember { mutableStateOf(MutableSharedFlow<String>()) }
     val messageList = remember { mutableStateListOf<String>() }
+    var sessionStarted by remember { mutableStateOf(false) }
+    var editFieldText = currentFile
     editorViewModel.address = ipAddress
     webSocketScope.launch {
-        val session  = startSession(ipAddress)
-        editorViewModel.outgoing = session.outgoing
-        session.incoming.consumeAsFlow().collect {
-            when (it) {
-                is Frame.Text -> messageFlow.emit(it.readText())
-                else -> println("unrecognized msg")
+        if(!sessionStarted) {
+            val session = startSession(ipAddress)
+            editorViewModel.outgoing = session.outgoing
+            session.incoming.consumeAsFlow().collect {
+                sessionStarted = true
+                when (it) {
+                    is Frame.Text -> messageFlow.emit(it.readText())
+                    else -> println("unrecognized msg")
+                }
             }
         }
     }
@@ -87,6 +105,7 @@ fun Editor(ipAddress: String, editorViewModel: EditorViewModel = viewModel()) {
                 Icon(
                     Icons.Default.Menu,
                     modifier = Modifier.clickable(onClick = {
+                        editorViewModel.getFileDirectory()
                         scaffoldState.drawerState.open()
                     })
                 )
@@ -94,7 +113,10 @@ fun Editor(ipAddress: String, editorViewModel: EditorViewModel = viewModel()) {
         },
         drawerContent = {
             Text(text = "$ipAddress's files", modifier = Modifier.padding(16.dp))
-            FilePane(rootFileNode = directory)
+            FilePane(rootFileNode = rootDirectory, onClick = {
+                editorViewModel.currentPath = "src/Hello.java"
+                editorViewModel.getCurrentFile()
+            })
         },
         scaffoldState = scaffoldState,
         backgroundColor = Color.Black,
@@ -123,9 +145,9 @@ fun Editor(ipAddress: String, editorViewModel: EditorViewModel = viewModel()) {
                     }
 
                 },
-                bodyContent = {}
+                bodyContent = {
+                    TextField(value = editFieldText, onValueChange = { editFieldText = it }, textStyle = TextStyle(Color.White), modifier = Modifier.fillMaxWidth())
+                }
         )
     }
 }
-
-
