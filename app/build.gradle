@@ -52,7 +52,7 @@ dependencies {
     implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.compose.material:material:$compose_version"
     implementation "androidx.compose.ui:ui-tooling:$compose_version"
-    implementation "androidx.navigation:navigation-compose:1.0.0-alpha04"
+    implementation "androidx.navigation:navigation-compose:1.0.0-alpha05"
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.3.0-rc01'
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.1"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
@@ -62,7 +62,8 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel-android:2.3.1'
     implementation "io.ktor:ktor-client-websockets:$ktor_version"
     implementation "io.ktor:ktor-client-cio:$ktor_version"
-    implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0"
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0'
+    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.10.0'
     testImplementation 'junit:junit:4.13.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
