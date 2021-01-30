@@ -4,14 +4,28 @@ import androidx.lifecycle.ViewModel
 import com.example.lsp_client.editor.files.FileNode
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.coroutines.awaitObjectResponseResult
 import com.github.kittinunf.fuel.coroutines.awaitStringResponseResult
 import com.github.kittinunf.fuel.coroutines.awaitStringResult
 import com.github.kittinunf.fuel.serialization.kotlinxDeserializerOf
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 private fun errorMessage(error: FuelError): String {
-    return "An error of type ${error.exception} happened: ${error.message}"
+    return "An error of type ${error.exception} happened: ${error.message}, ${error.response}"
 }
+
+@Serializable
+enum class FileSyncType {
+    New,
+    Update,
+    Delete
+}
+
+@Serializable
+data class FileSyncMsg(val reason: FileSyncType, val name: String, val text: String)
 
 suspend fun getDirectory(ip: String): FileNode {
     val (_, _, result) = Fuel.get("http://$ip/code/directory")
@@ -34,6 +48,46 @@ suspend fun getFile(ip: String,path: String): String {
                 println(errorMessage(error))
                 "No file found."
             }
+    )
+}
+
+suspend fun editFile(ip: String, path: String, edits: String): Boolean {
+    val (_, _, result) = Fuel.post("http://$ip/code/file/$path")
+        .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.Update, "Hello.java", edits)))
+        .awaitStringResponseResult()
+    return result.fold(
+        { data ->
+            println(data)
+            true
+        },
+        { error: FuelError ->
+            println(errorMessage(error))
+            false
+        }
+    )
+}
+
+suspend fun getRootUri(ip: String): String {
+    val (_, _, result) = Fuel.get("http://$ip/code/directory/root")
+        .awaitStringResponseResult()
+    return result.fold(
+        { data -> data },
+        { error ->
+            println(errorMessage(error))
+            ""
+        }
+    )
+}
+
+suspend fun runFile(ip: String,path: String): String {
+    val (_, _, result) = Fuel.get("http://$ip/code/run/$path")
+        .awaitStringResponseResult()
+    return result.fold(
+        { data -> data },
+        { error ->
+            println(errorMessage(error))
+            "No output found."
+        }
     )
 }
 

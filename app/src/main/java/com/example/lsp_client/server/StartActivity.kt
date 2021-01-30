@@ -21,6 +21,7 @@ fun StartupScreen(navController: NavController) {
     val connectionViewModel: ConnViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
     var response by remember { mutableStateOf("") }
+    var rootUri by remember { mutableStateOf("") }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
@@ -32,6 +33,7 @@ fun StartupScreen(navController: NavController) {
                         coroutineScope.launch {
                             connecting = true
                             response = connectionViewModel.getResult(ipAddress)
+                            rootUri = getRootUri(ipAddress)
                             connecting = false
                         }
                     })
@@ -42,9 +44,9 @@ fun StartupScreen(navController: NavController) {
             }
         }
         Row {
-            if (response.isNotEmpty() && ipAddress.isNotEmpty() && !connecting)  {
+            if (response.isNotEmpty() && ipAddress.isNotEmpty() && rootUri.isNotEmpty() && !connecting)  {
                 Text(response)
-                if (response == "OK ✅") navController.navigate("editor/$ipAddress")
+                if (response == "OK ✅") navController.navigate("editor/$ipAddress/$rootUri")
             } else if (connecting) {
                 CircularProgressIndicator(modifier = Modifier.scale(0.7F))
             }

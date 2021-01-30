@@ -29,9 +29,9 @@ fun AppEntry() {
         Surface(color = Color.Black) {
             NavHost(navController = navController, startDestination = "startup") {
                 composable("startup") { StartupScreen(navController) }
-                composable("editor/{ipAddress}") { navBackStackEntry -> navBackStackEntry.arguments?.getString("ipAddress")?.let {
-                    Editor(it)
-                } }
+                composable("editor/{ipAddress}/{rootUri}") { navBackStackEntry ->
+                    Editor(navBackStackEntry.arguments?.getString("ipAddress")!!, navBackStackEntry.arguments?.getString("rootUri")!!)
+                }
             }
         }
     }
