@@ -51,8 +51,8 @@ fun FileItem(root: FileNode, fileNode: FileNode, editorViewModel: EditorViewMode
                 if (!fileNode.isDirectory()) {
                     editorViewModel.currentPath = fileNode.getPath(root)
                     editorViewModel.getCurrentFile()
+                    onClick()
                 }
-                onClick()
             })
             .fillMaxWidth()
     ) {

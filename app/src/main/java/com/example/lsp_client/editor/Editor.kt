@@ -8,6 +8,7 @@ import androidx.compose.material.*
 import com.example.lsp_client.editor.files.FileNode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         }
     var outgoing: SendChannel<Frame> = Channel()
     var currentFile = MutableLiveData<String>()
+    val currentCodeOutput = MutableLiveData<String>()
     var languageMessageDispatch: LanguageMessageDispatch? = null
     val gson = Gson()
     var initialized = false
@@ -56,6 +58,13 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
         viewModelScope.launch {
             currentFile.value = getFile(address, currentPath)
+        }
+    }
+
+    fun getCodeOutput() {
+        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
+        viewModelScope.launch {
+            currentCodeOutput.value = runFile(address, currentPath)
         }
     }
 
@@ -91,6 +100,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val rootDirectory: FileNode by editorViewModel.directory.observeAsState(FileNode())
     val currentFile: String by editorViewModel.currentFile.observeAsState("")
+    val currentCodeOutput: String by editorViewModel.currentCodeOutput.observeAsState("")
     val languageMessageDispatch = remember { LanguageMessageDispatch(rootUri) }
     val webSocketScope = rememberCoroutineScope()
     val listenerScope = rememberCoroutineScope()
@@ -146,7 +156,14 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                             )
                         }
                     }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
-                        Text("Debug LSP")
+                        Text("Init LSP")
+                    }
+                    Spacer(Modifier.padding(2.dp))
+                    Button(onClick = {
+                        editorViewModel.getCodeOutput()
+                        drawerState.open()
+                                     }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
+                        Icon(Icons.Default.PlayArrow, "Run code")
                     }
                 }
             }, navigationIcon = {
@@ -162,7 +179,10 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
         },
         drawerContent = {
             Text(text = "$ipAddress's files", modifier = Modifier.padding(16.dp))
-            FilePane(rootFileNode = rootDirectory, editorViewModel, onClick = { editorViewModel.getFile() })
+            FilePane(
+                rootFileNode = rootDirectory,
+                editorViewModel,
+                onClick = { editorViewModel.getFile() })
         },
         scaffoldState = scaffoldState,
         backgroundColor = Color.Black,
@@ -171,27 +191,30 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
         BottomDrawerLayout(
             drawerState = drawerState,
             drawerContent = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row {
-                        Button(
-                            onClick = {
-                                drawerState.close()
-                            },
-                            content = { Text("Close Drawer") }
-                        )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(modifier = Modifier.padding(8.dp)) {
+                        Button( onClick = { drawerState.close() }, content = { Text("Close Drawer") })
                     }
-                    LazyColumn {
-                        items(messageList.reversed()) {
-                            Text(text = it, fontSize = 14.sp, color = Color.Black)
+                    if (currentCodeOutput.isNotBlank()){
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Surface(color = Color.DarkGray, modifier = Modifier.fillMaxWidth()) {
+                                Text(modifier = Modifier.padding(8.dp), color = Color.White, text = currentCodeOutput)
+                            }
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        LazyColumn {
+                            items(messageList.reversed()) {
+                                Text(text = it, fontSize = 14.sp, color = Color.Black)
+                            }
                         }
                     }
                 }
-
             }
         ) {
             TextField(

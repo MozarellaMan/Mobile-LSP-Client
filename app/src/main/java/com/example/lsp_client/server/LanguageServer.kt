@@ -13,10 +13,7 @@ suspend fun startLanguageServerSession(address: String): DefaultClientWebSocketS
     val client = HttpClient(CIO) {
         install(WebSockets)
     }
-
     val (host, port) = address.split(':', limit = 2)
-
-
     return client.webSocketSession(
         method = HttpMethod.Get,
         host = host,
@@ -32,7 +29,6 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
         params = InitializedParams().apply {
         }
     }
-
 
     fun textDidChange(filePath: String, content: String): String {
         val prevVersion = fileVersionMap[filePath] ?: 0
@@ -107,6 +103,7 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
                 "}"
     }
 
+// Not working
 //    fun semanticTokenLegend(): Pair<Int, String> {
 //        val semanticTokenLegend = RequestMessage().also {
 //            it.method = "workspace/executeCommand"
