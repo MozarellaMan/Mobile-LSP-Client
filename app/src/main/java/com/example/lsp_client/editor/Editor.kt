@@ -34,11 +34,21 @@ import kotlinx.coroutines.flow.consumeAsFlow
 
 
 class EditorViewModel(var address: String = "") : ViewModel() {
-    var opened: Boolean = false
     val directory = MutableLiveData<FileNode>()
+    private var previousFilePath = ""
     var currentPath: String = ""
+        set(newValue) {
+            previousFilePath = currentPath
+            field = newValue
+            if (previousFilePath.isNotBlank() && previousFilePath != field) {
+                viewModelScope.launch {
+                    outgoing.send(Frame.Text(gson.toJson(languageMessageDispatch?.textDocClose(previousFilePath))))
+                }
+            }
+        }
     var outgoing: SendChannel<Frame> = Channel()
     var currentFile = MutableLiveData<String>()
+    var languageMessageDispatch: LanguageMessageDispatch? = null
     val gson = Gson()
     var initialized = false
 
@@ -49,10 +59,20 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         }
     }
 
-    fun editCurrentFile(edits: String, languageMessageDispatch: LanguageMessageDispatch) {
+    fun getFile() {
+        languageMessageDispatch?.let {
+            if (previousFilePath != currentPath) {
+                viewModelScope.launch {
+                    outgoing.send(Frame.Text(it.textDocOpen(currentPath, getFile(address, currentPath))))
+                }
+            }
+        }
+    }
+
+    fun editCurrentFile(edits: String) {
         viewModelScope.launch {
             if (editFile(address,currentPath,edits)) {
-                outgoing.send(Frame.Text(gson.toJson(languageMessageDispatch.textDidChange(currentPath, edits))))
+                outgoing.send(Frame.Text(gson.toJson(languageMessageDispatch?.textDidChange(currentPath, edits))))
                 currentFile.value = edits
             }
         }
@@ -81,15 +101,16 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     editorViewModel.address = ipAddress
     webSocketScope.launch {
         if (!sessionStarted) {
-            val session = startSession(ipAddress)
+            val session = startLanguageServerSession(ipAddress)
             editorViewModel.outgoing = session.outgoing
+            editorViewModel.languageMessageDispatch = languageMessageDispatch
             session.incoming.consumeAsFlow().collect {
                 sessionStarted = true
                 when (it) {
                     is Frame.Text -> {
                         val response = it.readText()
                         if (response.contains("language/status") && response.contains("Ready") && !editorViewModel.initialized) {
-                            session.outgoing.send(Frame.Text(editorViewModel.gson.toJson(initialized)))
+                            session.outgoing.send(Frame.Text(editorViewModel.gson.toJson(languageMessageDispatch.initialized)))
                             editorViewModel.initialized = true
                         }
                         messageFlow.emit(response)
@@ -127,7 +148,6 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                     }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
                         Text("Debug LSP")
                     }
-                    //Button(onClick = {})
                 }
             }, navigationIcon = {
                 Icon(
@@ -142,26 +162,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
         },
         drawerContent = {
             Text(text = "$ipAddress's files", modifier = Modifier.padding(16.dp))
-            FilePane(rootFileNode = rootDirectory, editorViewModel, onClick = {
-                listenerScope.launch {
-                    if(!editorViewModel.opened) {
-                        editorViewModel.opened = true
-                        editorViewModel.outgoing.send(
-                            Frame.Text(
-                                languageMessageDispatch.textDocOpen(
-                                    editorViewModel.currentPath,
-                                    getFile(ipAddress, editorViewModel.currentPath)
-                                )
-                            )
-                        )
-                    }
-                    editorViewModel.outgoing.send(
-                        Frame.Text(
-                            languageMessageDispatch.semanticTokenLegend().second
-                        )
-                    )
-                }
-            })
+            FilePane(rootFileNode = rootDirectory, editorViewModel, onClick = { editorViewModel.getFile() })
         },
         scaffoldState = scaffoldState,
         backgroundColor = Color.Black,
@@ -195,7 +196,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
         ) {
             TextField(
                 value = currentFile,
-                onValueChange = { editorViewModel.editCurrentFile(it,languageMessageDispatch) },
+                onValueChange = { editorViewModel.editCurrentFile(it) },
                 textStyle = TextStyle(Color.White),
                 modifier = Modifier.fillMaxWidth()
             )

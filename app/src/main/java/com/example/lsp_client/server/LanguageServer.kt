@@ -9,40 +9,30 @@ import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage
 import org.eclipse.lsp4j.jsonrpc.messages.RequestMessage
 
-val initialized = NotificationMessage().apply {
-    method = "initialized"
-    params = InitializedParams().apply {
+suspend fun startLanguageServerSession(address: String): DefaultClientWebSocketSession {
+    val client = HttpClient(CIO) {
+        install(WebSockets)
     }
+
+    val (host, port) = address.split(':', limit = 2)
+
+
+    return client.webSocketSession(
+        method = HttpMethod.Get,
+        host = host,
+        port = port.toIntOrNull() ?: 0, path = "/ls"
+    )
 }
 
 class LanguageMessageDispatch(private var baseUri: String,private var id: Int = -1) {
     private val gson = Gson()
     private val fileVersionMap = mutableMapOf<String, Int>()
-
-    fun semanticTokenLegend(): Pair<Int, String> {
-        val semanticTokenLegend = RequestMessage().also {
-            it.method = "workspace/executeCommand"
-            it.params = ExecuteCommandParams().apply {
-                command = "java.project.getSemanticTokensLegend"
-            }
+    val initialized = NotificationMessage().apply {
+        method = "initialized"
+        params = InitializedParams().apply {
         }
-        return Pair(++id, gson.toJsonTree(semanticTokenLegend).asJsonObject.apply {
-            addProperty("id","$id")
-        }.toString())
     }
 
-    fun semanticTokens(filePath: String): String {
-        val semanticTokens = RequestMessage().also {
-            it.method = "workspace/executeCommand"
-            it.params = ExecuteCommandParams().apply {
-                command = "java.project.provideSemanticTokens"
-                arguments = listOf("$baseUri$filePath")
-            }
-        }
-        return gson.toJsonTree(semanticTokens).asJsonObject.apply {
-            addProperty("id","${++id}")
-        }.toString()
-    }
 
     fun textDidChange(filePath: String, content: String): String {
         val prevVersion = fileVersionMap[filePath] ?: 0
@@ -70,10 +60,25 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
             method = "textDocument/didOpen"
             params = DidOpenTextDocumentParams().apply {
                 textDocument = TextDocumentItem().apply {
-                    uri = "$baseUri$filePath"
+                    uri = "$baseUri/$filePath"
                     languageId = "java"
                     version = versionId
                     text = content
+                }
+            }
+        }
+        return gson.toJson(notification)
+    }
+
+    fun textDocClose(filePath: String): String {
+        var versionId = fileVersionMap.getOrPut(filePath, { 0 })
+        versionId++
+        fileVersionMap[filePath] = versionId
+        val notification = NotificationMessage().apply {
+            method = "textDocument/didClose"
+            params = DidCloseTextDocumentParams().apply {
+                textDocument = TextDocumentIdentifier().apply {
+                    uri = "$baseUri/$filePath"
                 }
             }
         }
@@ -101,40 +106,29 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
                 "    }\n" +
                 "}"
     }
-}
 
-class LanguageServerSocket(
-    private val address: String,
-) {
-    private
-    suspend fun startSession(): DefaultClientWebSocketSession {
-        val client = HttpClient(CIO) {
-            install(WebSockets)
-        }
-
-        val (host, port) = address.split(':', limit = 2)
-
-        return client.webSocketSession(
-            method = HttpMethod.Get,
-            host = host,
-            port = port.toIntOrNull() ?: 0, path = "/ls"
-        )
-    }
-}
-
-suspend fun startSession(address: String): DefaultClientWebSocketSession {
-    val client = HttpClient(CIO) {
-        install(WebSockets)
-    }
-
-    val (host, port) = address.split(':', limit = 2)
-
-
-    return client.webSocketSession(
-        method = HttpMethod.Get,
-        host = host,
-        port = port.toIntOrNull() ?: 0, path = "/ls"
-    )
-
-
+//    fun semanticTokenLegend(): Pair<Int, String> {
+//        val semanticTokenLegend = RequestMessage().also {
+//            it.method = "workspace/executeCommand"
+//            it.params = ExecuteCommandParams().apply {
+//                command = "java.project.getSemanticTokensLegend"
+//            }
+//        }
+//        return Pair(++id, gson.toJsonTree(semanticTokenLegend).asJsonObject.apply {
+//            addProperty("id","$id")
+//        }.toString())
+//    }
+//
+//    fun semanticTokens(filePath: String): String {
+//        val semanticTokens = RequestMessage().also {
+//            it.method = "workspace/executeCommand"
+//            it.params = ExecuteCommandParams().apply {
+//                command = "java.project.provideSemanticTokens"
+//                arguments = listOf("$baseUri/$filePath")
+//            }
+//        }
+//        return gson.toJsonTree(semanticTokens).asJsonObject.apply {
+//            addProperty("id","${++id}")
+//        }.toString()
+//    }
 }
