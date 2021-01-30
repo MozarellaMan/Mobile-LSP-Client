@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -46,15 +47,15 @@ fun DrawFileNode(root: FileNode,fileNode: FileNode, editorViewModel: EditorViewM
 fun FileItem(root: FileNode, fileNode: FileNode, editorViewModel: EditorViewModel, onClick: () -> Unit) {
     val padding = 16.dp
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-            .padding(padding)
-            .clickable(onClick = {
-                if (!fileNode.isDirectory()) {
-                    editorViewModel.currentPath = fileNode.getPath(root)
-                    editorViewModel.getCurrentFile()
-                    onClick()
-                }
-            })
-            .fillMaxWidth()
+        .padding(padding)
+        .clickable(onClick = {
+            if (!fileNode.isDirectory()) {
+                editorViewModel.currentPath = fileNode.getPath(root)
+                editorViewModel.getCurrentFile()
+                onClick()
+            }
+        })
+        .fillMaxWidth()
     ) {
         Column {
             Row {
@@ -62,6 +63,11 @@ fun FileItem(root: FileNode, fileNode: FileNode, editorViewModel: EditorViewMode
                     Icon(imageVector = Icons.Filled.Menu, "Directory burger menu", tint = Color.White)
                 }
                     Text(text = fileNode.name, color = Color.White)
+                if (fileNode.isDirectory()) {
+                    Column(modifier = Modifier.fillMaxWidth() ,horizontalAlignment = Alignment.End) {
+                        Icon(imageVector = Icons.Filled.Add, "Create new file", tint = Color.White)
+                    }
+                }
             }
         }
     }

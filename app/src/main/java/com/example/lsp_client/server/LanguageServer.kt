@@ -7,7 +7,6 @@ import io.ktor.client.features.websocket.*
 import io.ktor.http.*
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage
-import org.eclipse.lsp4j.jsonrpc.messages.RequestMessage
 
 suspend fun startLanguageServerSession(address: String): DefaultClientWebSocketSession {
     val client = HttpClient(CIO) {
