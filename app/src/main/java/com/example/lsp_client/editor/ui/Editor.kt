@@ -1,99 +1,32 @@
-package com.example.lsp_client.editor
+package com.example.lsp_client.editor.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
-import com.example.lsp_client.editor.files.FileNode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.viewModel
-import androidx.compose.ui.Alignment
-import com.example.lsp_client.ui.purple700
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.*
-import com.example.lsp_client.editor.files.FilePane
-import com.example.lsp_client.server.*
-import com.google.gson.Gson
+import androidx.compose.ui.viewinterop.viewModel
+import com.example.lsp_client.editor.EditorViewModel
+import com.example.lsp_client.editor.files.FileNode
+import com.example.lsp_client.server.LanguageMessageDispatch
+import com.example.lsp_client.server.startLanguageServerSession
+import com.example.lsp_client.ui.purple700
 import io.ktor.http.cio.websocket.*
-
-import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.consumeAsFlow
-
-
-class EditorViewModel(var address: String = "") : ViewModel() {
-    val directory = MutableLiveData<FileNode>()
-    private var previousFilePath = ""
-    var currentPath: String = ""
-        set(newValue) {
-            previousFilePath = currentPath
-            field = newValue
-            if (previousFilePath.isNotBlank() && previousFilePath != field) {
-                viewModelScope.launch {
-                    outgoing.send(Frame.Text(gson.toJson(languageMessageDispatch?.textDocClose(previousFilePath))))
-                }
-            }
-        }
-    var outgoing: SendChannel<Frame> = Channel()
-    var currentFile = MutableLiveData<String>()
-    val currentCodeOutput = MutableLiveData<String>()
-    var languageMessageDispatch: LanguageMessageDispatch? = null
-    val gson = Gson()
-    var initialized = false
-
-    fun getCurrentFile() {
-        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
-        viewModelScope.launch {
-            currentFile.value = getFile(address, currentPath)
-        }
-    }
-
-    fun getCodeOutput() {
-        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
-        viewModelScope.launch {
-            currentCodeOutput.value = runFile(address, currentPath)
-        }
-    }
-
-    fun getFile() {
-        languageMessageDispatch?.let {
-            if (previousFilePath != currentPath) {
-                viewModelScope.launch {
-                    outgoing.send(Frame.Text(it.textDocOpen(currentPath, getFile(address, currentPath))))
-                }
-            }
-        }
-    }
-
-    fun editCurrentFile(edits: String) {
-        viewModelScope.launch {
-            if (editFile(address,currentPath,edits)) {
-                outgoing.send(Frame.Text(gson.toJson(languageMessageDispatch?.textDidChange(currentPath, edits))))
-                currentFile.value = edits
-            }
-        }
-    }
-
-    fun getFileDirectory() {
-        if (address.isBlank()) return
-        viewModelScope.launch {
-            directory.value = getDirectory(address)
-        }
-    }
-}
+import kotlinx.coroutines.launch
 
 @Composable
 fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel = viewModel()) {
@@ -112,7 +45,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     webSocketScope.launch {
         if (!sessionStarted) {
             val session = startLanguageServerSession(ipAddress)
-            editorViewModel.outgoing = session.outgoing
+            editorViewModel.outgoingSocket = session.outgoing
             editorViewModel.languageMessageDispatch = languageMessageDispatch
             session.incoming.consumeAsFlow().collect {
                 sessionStarted = true
@@ -147,7 +80,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                     Button(onClick = {
                         drawerState.open()
                         listenerScope.launch {
-                            editorViewModel.outgoing.send(
+                            editorViewModel.outgoingSocket.send(
                                 Frame.Text(
                                     languageMessageDispatch.initialize(
                                         listOf("\"hoverProvider\" : \"true\"")
@@ -162,7 +95,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                     Button(onClick = {
                         editorViewModel.getCodeOutput()
                         drawerState.open()
-                                     }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
+                    }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
                         Icon(Icons.Default.PlayArrow, "Run code")
                     }
                 }
@@ -221,7 +154,8 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                 value = currentFile,
                 onValueChange = { editorViewModel.editCurrentFile(it) },
                 textStyle = TextStyle(Color.White),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                activeColor = Color.Transparent
             )
         }
     }

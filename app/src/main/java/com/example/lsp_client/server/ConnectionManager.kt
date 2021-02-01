@@ -7,7 +7,6 @@ import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.coroutines.awaitObjectResponseResult
 import com.github.kittinunf.fuel.coroutines.awaitStringResponseResult
-import com.github.kittinunf.fuel.coroutines.awaitStringResult
 import com.github.kittinunf.fuel.serialization.kotlinxDeserializerOf
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -51,9 +50,9 @@ suspend fun getFile(ip: String,path: String): String {
     )
 }
 
-suspend fun editFile(ip: String, path: String, edits: String): Boolean {
+suspend fun editFile(ip: String, path: String, edits: String, fileName: String): Boolean {
     val (_, _, result) = Fuel.post("http://$ip/code/file/$path")
-        .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.Update, "Hello.java", edits)))
+        .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.Update, fileName, edits)))
         .awaitStringResponseResult()
     return result.fold(
         { data ->
@@ -63,6 +62,21 @@ suspend fun editFile(ip: String, path: String, edits: String): Boolean {
         { error: FuelError ->
             println(errorMessage(error))
             false
+        }
+    )
+}
+
+suspend fun newFile(ip: String, path: String, fileName: String): String {
+    val (_, _, result) = Fuel.post("http://$ip/code/file/$path")
+        .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.New, fileName, " ")))
+        .awaitStringResponseResult()
+    return result.fold(
+        { data ->
+            data
+        },
+        { error: FuelError ->
+            println(errorMessage(error))
+            "File could not be created"
         }
     )
 }
