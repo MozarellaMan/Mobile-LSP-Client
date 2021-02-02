@@ -1,7 +1,7 @@
-package com.example.lsp_client.server
+package com.ayo.lsp_client.server
 
 import androidx.lifecycle.ViewModel
-import com.example.lsp_client.editor.files.FileNode
+import com.ayo.lsp_client.editor.files.FileNode
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.extensions.jsonBody
@@ -114,7 +114,8 @@ class ConnViewModel : ViewModel() {
         val (_, _, result) = Fuel.get("http://$ip/health").awaitStringResponseResult()
         return result.fold(
             { "OK ✅" },
-            { error -> errorMessage(error)}
+            { error -> errorMessage(error) }
         )
     }
 }
+

@@ -1,4 +1,4 @@
-package com.example.lsp_client.ui
+package com.ayo.lsp_client.ui
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Shapes

@@ -1,4 +1,4 @@
-package com.example.lsp_client.editor.ui
+package com.ayo.lsp_client.editor.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.lsp_client.editor.EditorViewModel
-import com.example.lsp_client.editor.files.FileNode
-import com.example.lsp_client.ui.purple500
+import com.ayo.lsp_client.editor.EditorViewModel
+import com.ayo.lsp_client.editor.files.FileNode
+import com.ayo.lsp_client.ui.purple500
 
 @Composable
 fun FilePane(rootFileNode: FileNode, editorViewModel: EditorViewModel, onClick: () -> Unit) {

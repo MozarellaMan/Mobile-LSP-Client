@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.lsp_client">
+    package="com.ayo.lsp_client">
+
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:allowBackup="true"
@@ -9,11 +10,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@style/Theme.Lsp_client"
-        >
+        android:fullBackupOnly="true"
+        android:theme="@style/Theme.Lsp_client">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.ayo.lsp_client.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/Theme.Lsp_client.NoActionBar">
             <intent-filter>

@@ -8,12 +8,11 @@ android {
     compileSdkVersion 30
 
     defaultConfig {
-        applicationId "com.example.lsp_client"
+        applicationId "com.ayo.lsp_client"
         minSdkVersion 21
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -36,7 +35,6 @@ android {
     }
     composeOptions {
         kotlinCompilerExtensionVersion compose_version
-        kotlinCompilerVersion kotlin_version
     }
 }
 
@@ -65,7 +63,7 @@ dependencies {
     implementation "org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0"
     implementation "org.eclipse.lsp4j:org.eclipse.lsp4j.jsonrpc:0.10.0"
     implementation 'com.google.code.gson:gson:2.8.6'
-    implementation 'org.apache.commons:commons-lang3:3.11'
+    implementation 'org.apache.commons:commons-text:1.9'
     testImplementation 'junit:junit:4.13.1'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'

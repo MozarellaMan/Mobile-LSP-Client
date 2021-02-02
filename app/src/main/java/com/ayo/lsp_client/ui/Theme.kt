@@ -1,4 +1,4 @@
-package com.example.lsp_client.ui
+package com.ayo.lsp_client.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.MaterialTheme

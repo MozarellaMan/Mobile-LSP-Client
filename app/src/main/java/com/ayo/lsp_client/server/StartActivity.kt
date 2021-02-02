@@ -1,6 +1,5 @@
-package com.example.lsp_client.server
+package com.ayo.lsp_client.server
 
-import androidx.navigation.compose.navigate
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -11,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.navigate
 import kotlinx.coroutines.launch
 
 @Composable

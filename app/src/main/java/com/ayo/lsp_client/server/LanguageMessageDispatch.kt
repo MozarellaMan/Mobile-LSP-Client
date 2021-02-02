@@ -1,26 +1,11 @@
-package com.example.lsp_client.server
+package com.ayo.lsp_client.server
 
 import com.google.gson.Gson
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.features.websocket.*
-import io.ktor.http.*
 import org.eclipse.lsp4j.*
 import org.eclipse.lsp4j.jsonrpc.messages.NotificationMessage
+import org.eclipse.lsp4j.jsonrpc.messages.RequestMessage
 
-suspend fun startLanguageServerSession(address: String): DefaultClientWebSocketSession {
-    val client = HttpClient(CIO) {
-        install(WebSockets)
-    }
-    val (host, port) = address.split(':', limit = 2)
-    return client.webSocketSession(
-        method = HttpMethod.Get,
-        host = host,
-        port = port.toIntOrNull() ?: 0, path = "/ls"
-    )
-}
-
-class LanguageMessageDispatch(private var baseUri: String,private var id: Int = -1) {
+class LanguageMessageDispatch(private var baseUri: String, private var id: Int = -1) {
     private val gson = Gson()
     private val fileVersionMap = mutableMapOf<String, Int>()
     val initialized = NotificationMessage().apply {
@@ -90,7 +75,7 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
                 "            \"documentSelector\": [\n" +
                 "                \"java\"\n" +
                 "            ],\n" +
-                "            ${capabilities.joinToString { "" }}" +
+                "            ${capabilities.joinToString(separator = ",\n", postfix = ",\n")}" +
                 "            \"synchronize\": {\n" +
                 "                \"configurationSection\": \"languageServerExample\"\n" +
                 "            }\n" +
@@ -100,6 +85,19 @@ class LanguageMessageDispatch(private var baseUri: String,private var id: Int = 
                 "        \"rootUri\": \"$baseUri\"\n" +
                 "    }\n" +
                 "}"
+    }
+
+    fun refreshDiagnostics(filePath: String): String {
+        val refresh = RequestMessage().also {
+            it.method = "workspace/executeCommand"
+            it.params = ExecuteCommandParams().apply {
+                command = "java.project.refreshDiagnostics"
+                arguments = listOf("$baseUri/$filePath", "thisFile", true)
+            }
+        }
+        return gson.toJsonTree(refresh).asJsonObject.apply {
+            addProperty("id", "${++id}")
+        }.toString()
     }
 
 // Not working
