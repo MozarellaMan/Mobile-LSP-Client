@@ -21,6 +21,7 @@ class LanguageMessageDispatch(private var baseUri: String, private var id: Int =
             method = "textDocument/didChange"
             params = DidChangeTextDocumentParams().apply {
                 textDocument = VersionedTextDocumentIdentifier().apply {
+                    uri = "$baseUri/$filePath"
                     version = fileVersionMap[filePath]!!
                 }
                 contentChanges = listOf(TextDocumentContentChangeEvent().apply {

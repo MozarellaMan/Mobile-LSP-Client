@@ -102,19 +102,19 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     }
 
     fun editCurrentFile(edits: String) {
-        viewModelScope.launch {
-            if (editFile(address, currentPath, edits, currentPath.split("/").last())) {
+        languageMessageDispatch?.let {
+            viewModelScope.launch {
+                // if (editFile(address, currentPath, edits, currentPath.split("/").last())) {
                 outgoingSocket.send(
                     Frame.Text(
-                        gson.toJson(
-                            languageMessageDispatch?.textDidChange(
-                                currentPath,
-                                edits
-                            )
+                        it.textDidChange(
+                            currentPath,
+                            edits
                         )
                     )
                 )
                 currentFile.value = edits
+                //}
             }
         }
     }
