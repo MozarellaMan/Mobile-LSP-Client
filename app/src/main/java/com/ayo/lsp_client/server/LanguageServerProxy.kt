@@ -50,6 +50,7 @@ suspend fun getFile(ip: String,path: String): String {
     )
 }
 
+@Deprecated("Made redundant by LSP textDocument/didChange notification")
 suspend fun editFile(ip: String, path: String, edits: String, fileName: String): Boolean {
     val (_, _, result) = Fuel.post("http://$ip/code/file/$path")
         .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.Update, fileName, edits)))
@@ -66,6 +67,7 @@ suspend fun editFile(ip: String, path: String, edits: String, fileName: String):
     )
 }
 
+@Deprecated("Made redundant by LSP workspace/didCreateFiles notification")
 suspend fun newFile(ip: String, path: String, fileName: String): String {
     val (_, _, result) = Fuel.post("http://$ip/code/file/$path")
         .jsonBody(Json.encodeToString(FileSyncMsg(FileSyncType.New, fileName, " ")))

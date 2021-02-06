@@ -14,6 +14,18 @@ class LanguageMessageDispatch(private var baseUri: String, private var id: Int =
         }
     }
 
+    fun didCreateFiles(filePath: String, fileName: String): String {
+        val notification = NotificationMessage().apply {
+            method = "workspace/didCreateFiles"
+            params = CreateFilesParams().apply {
+                files = listOf(FileCreate().apply {
+                    uri = "$baseUri/$filePath/$fileName"
+                })
+            }
+        }
+        return gson.toJson(notification)
+    }
+
     fun textDidChange(filePath: String, content: String): String {
         val prevVersion = fileVersionMap[filePath] ?: 0
         fileVersionMap[filePath] = prevVersion

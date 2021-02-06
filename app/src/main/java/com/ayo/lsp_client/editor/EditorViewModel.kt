@@ -153,9 +153,11 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     }
 
     fun createNewFile(directoryPath: String, fileName: String) {
-        viewModelScope.launch {
-            newFile(address, directoryPath, fileName)
-            getFileDirectory()
+        languageMessageDispatch?.let {
+            viewModelScope.launch {
+                outgoingSocket.send(Frame.Text(it.didCreateFiles(directoryPath, fileName)))
+                getFileDirectory()
+            }
         }
     }
 
