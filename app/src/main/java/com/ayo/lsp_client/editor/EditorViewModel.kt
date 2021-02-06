@@ -1,5 +1,6 @@
 package com.ayo.lsp_client.editor
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.eclipse.lsp4j.Diagnostic
+import org.eclipse.lsp4j.DiagnosticSeverity
 
 class EditorViewModel(var address: String = "") : ViewModel() {
     val directory = MutableLiveData<FileNode>()
@@ -44,6 +46,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     private val gson: Gson = GsonBuilder().setLenient().create()
     private var initialized = false
     var diagnostics = MutableLiveData<List<Diagnostic>>()
+    var highestDiagnosticSeverity = MutableLiveData<Color>()
 
     suspend fun respond(webSocketMessage: String) {
         if (webSocketMessage.contains("language/status") && webSocketMessage.contains("Ready") && !initialized) {
@@ -66,6 +69,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
                 }
             }
             diagnostics.value = newDiagnostics
+            getHighestDiagnosticColour()
         }
     }
 
@@ -160,5 +164,23 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         viewModelScope.launch {
             directory.value = getDirectory(address)
         }
+    }
+
+    fun colorFromDiagnosticSeverity(diagnosticSeverity: DiagnosticSeverity?): Color {
+        return when (diagnosticSeverity) {
+            DiagnosticSeverity.Error -> Color.Red
+            DiagnosticSeverity.Warning -> Color.Yellow
+            DiagnosticSeverity.Information -> Color.Blue
+            DiagnosticSeverity.Hint -> Color.Green
+            else -> Color.White
+        }
+    }
+
+    private fun getHighestDiagnosticColour() {
+        if (diagnostics.value.isNullOrEmpty()) {
+            highestDiagnosticSeverity.value = Color.White
+        }
+        highestDiagnosticSeverity.value =
+            colorFromDiagnosticSeverity(diagnostics.value?.minByOrNull { it.severity.value }?.severity)
     }
 }

@@ -36,6 +36,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val currentFile: String by editorViewModel.currentFile.observeAsState("")
     val currentCodeOutput: String by editorViewModel.currentCodeOutput.observeAsState("")
     val diagnostics: List<Diagnostic> by editorViewModel.diagnostics.observeAsState(emptyList())
+    val highestDiagnostic: Color by editorViewModel.highestDiagnosticSeverity.observeAsState(Color.White)
     val languageMessageDispatch = remember { LanguageMessageDispatch(rootUri) }
     val webSocketScope = rememberCoroutineScope()
     val listenerScope = rememberCoroutineScope()
@@ -72,11 +73,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                         Icon(
                             Icons.Default.Info,
                             "Code Diagnostics",
-                            tint = if (diagnostics.isEmpty()) {
-                                Color.White
-                            } else {
-                                Color.Yellow
-                            }
+                            tint = highestDiagnostic
                         )
                     }
                     Button(
@@ -159,11 +156,13 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
             Column {
                 AnimatedVisibility(visible = diagnosticsVisible && diagnostics.isNotEmpty()) {
                     Row {
-                        Surface(color = Color.Yellow, modifier = Modifier.fillMaxWidth()) {
-                            LazyColumn(Modifier.padding(8.dp)) {
-                                items(diagnostics) {
-                                    Text(text = it.message, fontSize = 14.sp, color = Color.Black)
-                                }
+                        Column(Modifier.padding(8.dp)) {
+                            diagnostics.forEach {
+                                Text(
+                                    text = it.message,
+                                    fontSize = 14.sp,
+                                    color = editorViewModel.colorFromDiagnosticSeverity(it.severity),
+                                )
                             }
                         }
                     }
@@ -174,7 +173,6 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                         onValueChange = { editorViewModel.editCurrentFile(it) },
                         textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
                         modifier = Modifier.fillMaxWidth(),
-
                         activeColor = Color.Transparent
                     )
                 }
