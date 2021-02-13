@@ -10,9 +10,9 @@ import androidx.compose.ui.platform.setContent
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.ayo.lsp_client.editor.ui.Editor
-import com.ayo.lsp_client.server.StartupScreen
-import com.ayo.lsp_client.ui.LSPClientTheme
+import com.ayo.lsp_client.ui.StartupScreen
+import com.ayo.lsp_client.ui.editor.Editor
+import com.ayo.lsp_client.ui.theming.LSPClientTheme
 
 class MainActivity : AppCompatActivity() {
     @ExperimentalAnimationApi

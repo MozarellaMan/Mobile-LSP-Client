@@ -1,7 +1,7 @@
 package com.ayo.lsp_client.server
 
 import androidx.lifecycle.ViewModel
-import com.ayo.lsp_client.editor.files.FileNode
+import com.ayo.lsp_client.ui.editor.files.FileNode
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.extensions.jsonBody
@@ -79,6 +79,19 @@ suspend fun newFile(ip: String, path: String, fileName: String): String {
         { error: FuelError ->
             println(errorMessage(error))
             "File could not be created"
+        }
+    )
+}
+
+suspend fun addInput(ip: String, inputStrings: List<String>): String {
+    val (_, _, result) = Fuel.post("http://$ip/code/run/")
+        .body(inputStrings.joinToString(separator = "\n"))
+        .awaitStringResponseResult()
+    return result.fold(
+        { "" },
+        { error ->
+            println(errorMessage(error))
+            errorMessage(error)
         }
     )
 }

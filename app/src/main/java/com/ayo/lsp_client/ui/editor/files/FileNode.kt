@@ -1,4 +1,4 @@
-package com.ayo.lsp_client.editor.files
+package com.ayo.lsp_client.ui.editor.files
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

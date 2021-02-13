@@ -43,7 +43,7 @@ fun initializeLspWebSocket(
     editorViewModel: EditorViewModel,
     languageMessageDispatch: LanguageMessageDispatch,
     messageFlow: MutableSharedFlow<String>,
-    messageList: SnapshotStateList<String>
+    messageOutputList: SnapshotStateList<String>
 ) {
     editorViewModel.address = ipAddress
     webSocketSendingScope.launch {
@@ -65,7 +65,7 @@ fun initializeLspWebSocket(
     }
     webSocketListeningScope.launch {
         messageFlow.collect {
-            messageList.add(it)
+            messageOutputList.add(it)
         }
     }
 }

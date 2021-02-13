@@ -1,4 +1,4 @@
-package com.ayo.lsp_client.server
+package com.ayo.lsp_client.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -11,6 +11,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.navigate
+import com.ayo.lsp_client.server.ConnViewModel
+import com.ayo.lsp_client.server.getRootUri
 import kotlinx.coroutines.launch
 
 @Composable

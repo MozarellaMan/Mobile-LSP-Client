@@ -4,8 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ayo.lsp_client.editor.files.FileNode
 import com.ayo.lsp_client.server.*
+import com.ayo.lsp_client.ui.editor.files.FileNode
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ktor.http.cio.websocket.*
@@ -47,6 +47,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     private var initialized = false
     var diagnostics = MutableLiveData<List<Diagnostic>>()
     var highestDiagnosticSeverity = MutableLiveData<Color>()
+    var programInputs = MutableLiveData<List<String>>()
 
     suspend fun respond(webSocketMessage: String) {
         if (webSocketMessage.contains("language/status") && webSocketMessage.contains("Ready") && !initialized) {
@@ -70,6 +71,13 @@ class EditorViewModel(var address: String = "") : ViewModel() {
             }
             diagnostics.value = newDiagnostics
             getHighestDiagnosticColour()
+        }
+    }
+
+    suspend fun sendProgramInputs() {
+        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
+        viewModelScope.launch {
+            programInputs.value?.let { addInput(address, it) }
         }
     }
 
@@ -108,7 +116,6 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     fun editCurrentFile(edits: String) {
         languageMessageDispatch?.let {
             viewModelScope.launch {
-                // if (editFile(address, currentPath, edits, currentPath.split("/").last())) {
                 outgoingSocket.send(
                     Frame.Text(
                         it.textDidChange(
@@ -118,7 +125,6 @@ class EditorViewModel(var address: String = "") : ViewModel() {
                     )
                 )
                 currentFile.value = edits
-                //}
             }
         }
     }

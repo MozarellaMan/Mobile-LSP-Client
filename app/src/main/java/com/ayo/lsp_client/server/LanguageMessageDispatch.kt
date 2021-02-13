@@ -112,30 +112,4 @@ class LanguageMessageDispatch(private var baseUri: String, private var id: Int =
             addProperty("id", "${++id}")
         }.toString()
     }
-
-// Not working
-//    fun semanticTokenLegend(): Pair<Int, String> {
-//        val semanticTokenLegend = RequestMessage().also {
-//            it.method = "workspace/executeCommand"
-//            it.params = ExecuteCommandParams().apply {
-//                command = "java.project.getSemanticTokensLegend"
-//            }
-//        }
-//        return Pair(++id, gson.toJsonTree(semanticTokenLegend).asJsonObject.apply {
-//            addProperty("id","$id")
-//        }.toString())
-//    }
-//
-//    fun semanticTokens(filePath: String): String {
-//        val semanticTokens = RequestMessage().also {
-//            it.method = "workspace/executeCommand"
-//            it.params = ExecuteCommandParams().apply {
-//                command = "java.project.provideSemanticTokens"
-//                arguments = listOf("$baseUri/$filePath")
-//            }
-//        }
-//        return gson.toJsonTree(semanticTokens).asJsonObject.apply {
-//            addProperty("id","${++id}")
-//        }.toString()
-//    }
 }
