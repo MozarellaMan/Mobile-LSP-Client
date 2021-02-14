@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PlayArrow
@@ -18,18 +19,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ayo.lsp_client.editor.EditorViewModel
+import com.ayo.lsp_client.editor.files.FileNode
 import com.ayo.lsp_client.server.LanguageMessageDispatch
 import com.ayo.lsp_client.server.initializeLspWebSocket
-import com.ayo.lsp_client.ui.editor.files.FileNode
 import com.ayo.lsp_client.ui.editor.files.FilePane
-import com.ayo.lsp_client.ui.theming.purple700
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.eclipse.lsp4j.Diagnostic
 
+@ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Composable
 fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel = viewModel()) {
@@ -46,7 +48,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val messageFlow by remember { mutableStateOf(MutableSharedFlow<String>()) }
     val messageList = remember { mutableStateListOf<String>() }
     var sessionStarted by remember { mutableStateOf(false) }
-    val diagnosticsVisible by remember { mutableStateOf(false) }
+    var diagnosticsVisible by remember { mutableStateOf(false) }
     if (!sessionStarted) {
         initializeLspWebSocket(
             onSessionStart = { sessionStarted = true },
@@ -64,7 +66,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
             TopAppBar(title = {
                 EditorAppBar(
                     ipAddress,
-                    diagnosticsVisible,
+                    { diagnosticsVisible = !diagnosticsVisible },
                     editorViewModel,
                     highestDiagnostic,
                     drawerState,
@@ -105,46 +107,45 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
 @Composable
 private fun EditorAppBar(
     ipAddress: String,
-    diagnosticsVisible: Boolean,
+    onInfoPressed: () -> Unit,
     editorViewModel: EditorViewModel,
     highestDiagnostic: Color,
     drawerState: BottomDrawerState,
 ) {
-    var diagnosticsVisible1 = diagnosticsVisible
     Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(ipAddress)
-        Spacer(Modifier.padding(8.dp))
-        IconButton(onClick = {
-            diagnosticsVisible1 = !diagnosticsVisible1
-            editorViewModel.refreshDiagnostics()
-        }) {
-            Icon(
-                Icons.Default.Info,
-                "Code Diagnostics",
-                tint = highestDiagnostic
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = ipAddress,
+                textAlign = TextAlign.Center
             )
         }
-        Button(
-            onClick = {
-                if (drawerState.isClosed) {
-                    drawerState.open()
-                } else {
-                    drawerState.close()
-                }
-            },
-            colors = ButtonDefaults.buttonColors(backgroundColor = purple700)
-        ) {
-            Text("Debug")
-        }
-        Spacer(Modifier.padding(2.dp))
-        Button(onClick = {
-            editorViewModel.getCodeOutput()
-            drawerState.open()
-        }, colors = ButtonDefaults.buttonColors(backgroundColor = purple700)) {
-            Icon(Icons.Default.PlayArrow, "Run code")
+        Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+            IconButton(onClick = {
+                onInfoPressed()
+                editorViewModel.refreshDiagnostics()
+            }) {
+                Icon(
+                    Icons.Default.Info,
+                    "Code Diagnostics",
+                    tint = highestDiagnostic
+                )
+            }
+            IconButton(onClick = {
+                editorViewModel.getCodeOutput()
+                drawerState.open()
+            }) {
+                Icon(Icons.Default.PlayArrow, "Run code")
+            }
+            IconButton(onClick = {
+                editorViewModel.killRunningCode()
+                drawerState.open()
+            }) {
+                Icon(Icons.Default.Clear, "Stop code")
+            }
         }
     }
 }

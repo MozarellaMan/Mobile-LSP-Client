@@ -1,12 +1,13 @@
 package com.ayo.lsp_client
 
 import android.os.Bundle
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.setContent
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -15,6 +16,7 @@ import com.ayo.lsp_client.ui.editor.Editor
 import com.ayo.lsp_client.ui.theming.LSPClientTheme
 
 class MainActivity : AppCompatActivity() {
+    @ExperimentalMaterialApi
     @ExperimentalAnimationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+@ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Composable
 fun AppEntry() {

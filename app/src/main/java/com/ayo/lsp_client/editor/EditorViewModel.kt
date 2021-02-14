@@ -4,8 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ayo.lsp_client.editor.files.FileNode
 import com.ayo.lsp_client.server.*
-import com.ayo.lsp_client.ui.editor.files.FileNode
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ktor.http.cio.websocket.*
@@ -93,6 +93,14 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         viewModelScope.launch {
             currentCodeOutput.value = "Running..."
             currentCodeOutput.value = runFile(address, currentPath)
+        }
+    }
+
+    fun killRunningCode() {
+        if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
+        viewModelScope.launch {
+            currentCodeOutput.value = "Stopping..."
+            currentCodeOutput.value = killRunningProgram(address)
         }
     }
 
