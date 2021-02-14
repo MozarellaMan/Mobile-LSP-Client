@@ -46,7 +46,7 @@ suspend fun getFile(ip: String,path: String): String {
 }
 
 suspend fun addInput(ip: String, inputStrings: List<String>): String {
-    val (_, _, result) = Fuel.post("http://$ip/code/run/")
+    val (_, _, result) = Fuel.post("http://$ip/code/input")
         .body(inputStrings.joinToString(separator = "\n"))
         .awaitStringResponseResult()
     return result.fold(

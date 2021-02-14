@@ -47,12 +47,12 @@ fun initializeLspWebSocket(
 ) {
     editorViewModel.address = ipAddress
     webSocketSendingScope.launch {
+        onSessionStart()
         val session = startLanguageServerSession(ipAddress)
         editorViewModel.outgoingSocket = session.outgoing
         editorViewModel.languageMessageDispatch = languageMessageDispatch
         editorViewModel.initialize()
         session.incoming.receiveAsFlow().collect {
-            onSessionStart()
             when (it) {
                 is Frame.Text -> {
                     val response = it.readText()

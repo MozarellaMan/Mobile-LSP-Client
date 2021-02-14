@@ -49,6 +49,8 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val messageList = remember { mutableStateListOf<String>() }
     var sessionStarted by remember { mutableStateOf(false) }
     var diagnosticsVisible by remember { mutableStateOf(false) }
+    var tabIndex by remember { mutableStateOf(0) }
+
     if (!sessionStarted) {
         initializeLspWebSocket(
             onSessionStart = { sessionStarted = true },
@@ -70,6 +72,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                     editorViewModel,
                     highestDiagnostic,
                     drawerState,
+                    { tabIndex = 0 },
                 )
             }, navigationIcon = {
                 Icon(
@@ -96,7 +99,15 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
         BottomDrawerLayout(
             drawerState = drawerState,
             drawerContent = {
-                BottomDrawerContent(drawerState, currentCodeOutput, messageList)
+                BottomDrawerContent(
+                    drawerState,
+                    currentCodeOutput,
+                    messageList,
+                    tabIndex,
+                    editorViewModel
+                ) {
+                    tabIndex = it
+                }
             }
         ) {
             MainEditorBody(diagnosticsVisible, diagnostics, editorViewModel, currentFile)
@@ -111,6 +122,7 @@ private fun EditorAppBar(
     editorViewModel: EditorViewModel,
     highestDiagnostic: Color,
     drawerState: BottomDrawerState,
+    onRun: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -135,6 +147,7 @@ private fun EditorAppBar(
                 )
             }
             IconButton(onClick = {
+                onRun()
                 editorViewModel.getCodeOutput()
                 drawerState.open()
             }) {
@@ -188,16 +201,38 @@ private fun MainEditorBody(
 private fun BottomDrawerContent(
     drawerState: BottomDrawerState,
     currentCodeOutput: String,
-    messageList: SnapshotStateList<String>
+    messageList: SnapshotStateList<String>,
+    tabIndex: Int,
+    editorViewModel: EditorViewModel,
+    onTabIndexChange: (Int) -> Unit
 ) {
+    val titles = listOf("Output", "Input")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(modifier = Modifier.padding(8.dp)) {
             Button(
                 onClick = { drawerState.close() },
                 content = { Text("Close Drawer") })
         }
-        CodeOutputTab(currentCodeOutput)
-        DebugLspTab(messageList)
+
+        TabRow(selectedTabIndex = tabIndex) {
+            titles.forEachIndexed { index, title ->
+                Tab(
+                    text = { Text(title) },
+                    selected = tabIndex == index,
+                    onClick = { onTabIndexChange(index) }
+                )
+            }
+        }
+        when (tabIndex) {
+            0 -> {
+                CodeOutputTab(currentCodeOutput = currentCodeOutput)
+                DebugLspTab(messageList = messageList)
+            }
+            1 -> {
+                CodeInputTab(editorViewModel)
+            }
+        }
+
     }
 }
 
@@ -229,5 +264,20 @@ private fun CodeOutputTab(currentCodeOutput: String) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CodeInputTab(editorViewModel: EditorViewModel) {
+    val currentInput = editorViewModel.currentCodeInput.observeAsState("")
+    Row {
+        TextField(
+            textStyle = TextStyle(color = Color.Black),
+            value = currentInput.value,
+            onValueChange = {
+                editorViewModel.setCurrentInput(it)
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }

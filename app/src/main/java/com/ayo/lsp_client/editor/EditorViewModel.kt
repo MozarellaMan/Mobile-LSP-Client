@@ -47,7 +47,8 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     private var initialized = false
     var diagnostics = MutableLiveData<List<Diagnostic>>()
     var highestDiagnosticSeverity = MutableLiveData<Color>()
-    var programInputs = MutableLiveData<List<String>>()
+    private var programInputs = MutableLiveData<List<String>>()
+    val currentCodeInput = MutableLiveData<String>()
 
     suspend fun respond(webSocketMessage: String) {
         if (webSocketMessage.contains("language/status") && webSocketMessage.contains("Ready") && !initialized) {
@@ -74,10 +75,13 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         }
     }
 
+
     suspend fun sendProgramInputs() {
         if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
         viewModelScope.launch {
-            programInputs.value?.let { addInput(address, it) }
+            currentCodeInput.value?.split("\n")?.let {
+                addInput(address, it)
+            }
         }
     }
 
@@ -91,6 +95,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     fun getCodeOutput() {
         if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
         viewModelScope.launch {
+            sendProgramInputs()
             currentCodeOutput.value = "Running..."
             currentCodeOutput.value = runFile(address, currentPath)
         }
@@ -198,5 +203,9 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         }
         highestDiagnosticSeverity.value =
             colorFromDiagnosticSeverity(diagnostics.value?.minByOrNull { it.severity.value }?.severity)
+    }
+
+    fun setCurrentInput(input: String) {
+        currentCodeInput.value = input
     }
 }
