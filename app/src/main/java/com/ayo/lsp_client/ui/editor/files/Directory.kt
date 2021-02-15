@@ -19,8 +19,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ayo.lsp_client.editor.EditorViewModel
-import com.ayo.lsp_client.editor.files.FileNode
 import com.ayo.lsp_client.ui.theming.purple500
+import lsp_proxy_tools.FileNode
 
 @Composable
 fun FilePane(rootFileNode: FileNode, editorViewModel: EditorViewModel, onClick: () -> Unit) {

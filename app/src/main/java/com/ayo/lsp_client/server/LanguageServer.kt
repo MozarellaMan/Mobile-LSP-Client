@@ -2,10 +2,6 @@ package com.ayo.lsp_client.server
 
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.ayo.lsp_client.editor.EditorViewModel
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.features.websocket.*
-import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,24 +12,13 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import lsp_proxy_tools.MessageGeneratorUtil
+import lsp_proxy_tools.StartLanguageServerSession
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.lsp4j.Position
 import org.eclipse.lsp4j.Range
 import org.eclipse.lsp4j.jsonrpc.messages.Either
-
-suspend fun startLanguageServerSession(address: String): DefaultClientWebSocketSession {
-    val client = HttpClient(CIO) {
-        install(WebSockets)
-    }
-    val (host, port) = address.split(':', limit = 2)
-    return client.webSocketSession(
-        method = HttpMethod.Get,
-        host = host,
-        port = port.toIntOrNull() ?: 0, path = "/ls"
-    )
-}
-
 
 fun initializeLspWebSocket(
     onSessionStart: () -> Unit,
@@ -41,16 +26,16 @@ fun initializeLspWebSocket(
     webSocketSendingScope: CoroutineScope,
     webSocketListeningScope: CoroutineScope,
     editorViewModel: EditorViewModel,
-    languageMessageDispatch: LanguageMessageDispatch,
+    rootUri: String,
     messageFlow: MutableSharedFlow<String>,
     messageOutputList: SnapshotStateList<String>
 ) {
     editorViewModel.address = ipAddress
     webSocketSendingScope.launch {
         onSessionStart()
-        val session = startLanguageServerSession(ipAddress)
+        val session = StartLanguageServerSession(ipAddress)
         editorViewModel.outgoingSocket = session.outgoing
-        editorViewModel.languageMessageDispatch = languageMessageDispatch
+        editorViewModel.languageMessageDispatch = MessageGeneratorUtil(rootUri)
         editorViewModel.initialize()
         session.incoming.receiveAsFlow().collect {
             when (it) {

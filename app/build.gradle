@@ -62,6 +62,7 @@ dependencies {
     implementation 'com.github.kittinunf.fuel:fuel-kotlinx-serialization:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-coroutines:2.3.1'
     implementation 'com.github.kittinunf.fuel:fuel-android:2.3.1'
+    implementation 'com.github.MozarellaMan:Language-Server-Proxy-Tools:0.0.14-alpha'
     implementation "io.ktor:ktor-client-websockets:$ktor_version"
     implementation "io.ktor:ktor-client-cio:$ktor_version"
     implementation 'com.google.code.gson:gson:2.8.6'

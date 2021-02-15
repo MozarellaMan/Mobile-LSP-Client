@@ -4,8 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ayo.lsp_client.editor.files.FileNode
-import com.ayo.lsp_client.server.*
+import com.ayo.lsp_client.server.parseDiagnosticJson
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ktor.http.cio.websocket.*
@@ -15,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import lsp_proxy_tools.*
 import org.eclipse.lsp4j.Diagnostic
 import org.eclipse.lsp4j.DiagnosticSeverity
 
@@ -42,7 +42,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     var outgoingSocket: SendChannel<Frame> = Channel()
     var currentFile = MutableLiveData<String>()
     val currentCodeOutput = MutableLiveData<String>()
-    var languageMessageDispatch: LanguageMessageDispatch? = null
+    var languageMessageDispatch: MessageGeneratorUtil? = null
     private val gson: Gson = GsonBuilder().setLenient().create()
     private var initialized = false
     var diagnostics = MutableLiveData<List<Diagnostic>>()
@@ -52,7 +52,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
 
     suspend fun respond(webSocketMessage: String) {
         if (webSocketMessage.contains("language/status") && webSocketMessage.contains("Ready") && !initialized) {
-            outgoingSocket.send(Frame.Text(gson.toJson(languageMessageDispatch?.initialized)))
+            outgoingSocket.send(Frame.Text(gson.toJson(languageMessageDispatch?.initialized())))
             initialized = true
         }
         if (webSocketMessage.contains("textDocument/publishDiagnostics") && webSocketMessage.contains(
@@ -76,7 +76,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     }
 
 
-    suspend fun sendProgramInputs() {
+    private suspend fun sendProgramInputs() {
         if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
         viewModelScope.launch {
             currentCodeInput.value?.split("\n")?.let {
@@ -160,7 +160,8 @@ class EditorViewModel(var address: String = "") : ViewModel() {
                         listOf(
                             "\"hoverProvider\" : \"true\"",
                             "\"textDocument.synchronization.dynamicRegistration\":\"true\""
-                        )
+                        ),
+                        "java"
                     )
                 )
             }?.let {

@@ -8,12 +8,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.navigate
 import com.ayo.lsp_client.server.ConnViewModel
-import com.ayo.lsp_client.server.getRootUri
 import kotlinx.coroutines.launch
+import lsp_proxy_tools.getRootUri
 
 @Composable
 fun StartupScreen(navController: NavController) {

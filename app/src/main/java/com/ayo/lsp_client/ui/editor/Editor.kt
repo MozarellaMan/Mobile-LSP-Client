@@ -24,11 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ayo.lsp_client.editor.EditorViewModel
-import com.ayo.lsp_client.editor.files.FileNode
-import com.ayo.lsp_client.server.LanguageMessageDispatch
 import com.ayo.lsp_client.server.initializeLspWebSocket
 import com.ayo.lsp_client.ui.editor.files.FilePane
 import kotlinx.coroutines.flow.MutableSharedFlow
+import lsp_proxy_tools.FileNode
 import org.eclipse.lsp4j.Diagnostic
 
 @ExperimentalMaterialApi
@@ -41,7 +40,6 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val currentCodeOutput: String by editorViewModel.currentCodeOutput.observeAsState("")
     val diagnostics: List<Diagnostic> by editorViewModel.diagnostics.observeAsState(emptyList())
     val highestDiagnostic: Color by editorViewModel.highestDiagnosticSeverity.observeAsState(Color.White)
-    val languageMessageDispatch = remember { LanguageMessageDispatch(rootUri) }
     val webSocketScope = rememberCoroutineScope()
     val listenerScope = rememberCoroutineScope()
     val drawerState = rememberBottomDrawerState(BottomDrawerValue.Open)
@@ -58,7 +56,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
             ipAddress = ipAddress,
             webSocketSendingScope = webSocketScope,
             webSocketListeningScope = listenerScope,
-            languageMessageDispatch = languageMessageDispatch,
+            rootUri = rootUri,
             messageFlow = messageFlow,
             messageOutputList = messageList
         )
