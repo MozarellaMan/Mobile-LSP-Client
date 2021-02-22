@@ -18,8 +18,13 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -189,7 +194,32 @@ private fun MainEditorBody(
                 onValueChange = { editorViewModel.editCurrentFile(it) },
                 textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
                 modifier = Modifier.fillMaxWidth(),
-                activeColor = Color.Transparent
+                activeColor = Color.Transparent,
+                visualTransformation = { text ->
+                    val lineIndexes = text.indices.filter { text[it] == '\n' || it == 0 }.map {
+                        if (it == 0) {
+                            0
+                        } else {
+                            it + 1
+                        }
+                    }
+                    TransformedText(
+                        AnnotatedString(
+                            text = text.text,
+                            spanStyles = diagnostics.map { diagnostic ->
+                                AnnotatedString.Range(
+                                    SpanStyle(
+                                        color = editorViewModel.colorFromDiagnosticSeverity(
+                                            diagnostic.severity
+                                        ),
+                                        textDecoration = TextDecoration.Underline
+                                    ),
+                                    lineIndexes[diagnostic.range.start.line] + diagnostic.range.start.character,
+                                    lineIndexes[diagnostic.range.end.line] + diagnostic.range.end.character
+                                )
+                            }
+                        ), OffsetMapping.Identity)
+                }
             )
         }
     }

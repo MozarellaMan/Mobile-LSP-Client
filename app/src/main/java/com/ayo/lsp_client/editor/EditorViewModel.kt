@@ -47,7 +47,6 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     private var initialized = false
     var diagnostics = MutableLiveData<List<Diagnostic>>()
     var highestDiagnosticSeverity = MutableLiveData<Color>()
-    private var programInputs = MutableLiveData<List<String>>()
     val currentCodeInput = MutableLiveData<String>()
 
     suspend fun respond(webSocketMessage: String) {
@@ -153,20 +152,18 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     }
 
     fun initialize() {
-        viewModelScope.launch {
-            languageMessageDispatch?.let {
-                Frame.Text(
-                    it.initialize(
-                        listOf(
-                            "\"hoverProvider\" : \"true\"",
-                            "\"textDocument.synchronization.dynamicRegistration\":\"true\""
-                        ),
-                        "java"
-                    )
-                )
-            }?.let {
+        languageMessageDispatch?.let {
+            viewModelScope.launch {
                 outgoingSocket.send(
-                    it
+                    Frame.Text(
+                        it.initialize(
+                            listOf(
+                                "\"hoverProvider\" : \"true\"",
+                                "\"textDocument.synchronization.dynamicRegistration\":\"true\""
+                            ),
+                            "java"
+                        )
+                    )
                 )
             }
         }
