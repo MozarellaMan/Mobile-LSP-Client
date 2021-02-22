@@ -209,9 +209,14 @@ private fun MainEditorBody(
                             spanStyles = diagnostics.map { diagnostic ->
                                 AnnotatedString.Range(
                                     SpanStyle(
-                                        color = editorViewModel.colorFromDiagnosticSeverity(
-                                            diagnostic.severity
-                                        ),
+                                        color = if (editorViewModel.colorFromDiagnosticSeverity(
+                                                diagnostic.severity
+                                            ) == Color.Yellow
+                                        ) {
+                                            Color.White.copy(alpha = 0.8f)
+                                        } else {
+                                            editorViewModel.colorFromDiagnosticSeverity(diagnostic.severity)
+                                        },
                                         textDecoration = TextDecoration.Underline
                                     ),
                                     lineIndexes[diagnostic.range.start.line] + diagnostic.range.start.character,
@@ -219,7 +224,7 @@ private fun MainEditorBody(
                                 )
                             }
                         ), OffsetMapping.Identity)
-                }
+                },
             )
         }
     }
