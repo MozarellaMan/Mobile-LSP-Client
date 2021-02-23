@@ -1,4 +1,4 @@
-# Mobile Language Server Protcol IDE
+# Mobile Language Server Protocol IDE
 
 A proof of concept mobile application that connects to
 my [Language Server Proxy](https://github.com/MozarellaMan/rust-lsp-proxy) that provides the ability
