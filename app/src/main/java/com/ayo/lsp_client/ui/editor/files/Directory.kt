@@ -1,15 +1,18 @@
 package com.ayo.lsp_client.ui.editor.files
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.TextFieldDefaults.textFieldColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,13 +25,17 @@ import com.ayo.lsp_client.editor.EditorViewModel
 import com.ayo.lsp_client.ui.theming.purple500
 import lsp_proxy_tools.FileNode
 
+@ExperimentalAnimationApi
 @Composable
 fun FilePane(rootFileNode: FileNode, editorViewModel: EditorViewModel, onClick: () -> Unit) {
-    Column(modifier = Modifier.padding(4.dp)) {
+    Column(modifier = Modifier
+        .padding(4.dp)
+        .animateContentSize()) {
         DrawFileNode(rootFileNode, rootFileNode, editorViewModel, onClick)
     }
 }
 
+@ExperimentalAnimationApi
 @Composable
 fun DrawFileNode(
     root: FileNode,
@@ -48,6 +55,7 @@ fun DrawFileNode(
     }
 }
 
+@ExperimentalAnimationApi
 @Composable
 fun FileItem(
     root: FileNode,
@@ -70,13 +78,18 @@ fun FileItem(
             .fillMaxWidth()
     ) {
         Column {
-            Row {
+            var newFileDialog by remember { mutableStateOf(false) }
+            //val dismissDialog = { newFileDialog = false }
+            var name by remember { mutableStateOf("") }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
                 if (fileNode.isDirectory()) {
 //                    if(!fileNode.isRoot()) {
 //                        Spacer(Modifier.padding(4.dp))
 //                    }
-                    var newFileDialog by remember { mutableStateOf(false) }
-                    val dismissDialog = { newFileDialog = false }
                     Column(horizontalAlignment = Alignment.Start) {
                         IconButton(onClick = { onOpen() }) {
                             Icon(
@@ -86,7 +99,10 @@ fun FileItem(
                             )
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
                         Text(
                             text = fileNode.name,
                             color = Color.White,
@@ -94,10 +110,9 @@ fun FileItem(
                         )
                     }
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.End
                     ) {
-                        IconButton(onClick = { newFileDialog = true }) {
+                        IconButton(onClick = { newFileDialog = !newFileDialog }) {
                             Icon(
                                 imageVector = Icons.Filled.Add,
                                 "Create new file",
@@ -105,11 +120,47 @@ fun FileItem(
                             )
                         }
                     }
-                    if (newFileDialog) {
-                        NewFileDialog(dismissDialog, editorViewModel, fileNode, root)
-                    }
                 } else {
                     Text(text = fileNode.name, color = Color.White)
+                }
+            }
+            AnimatedVisibility(visible = newFileDialog) {
+                Column {
+                    TextField(
+                        modifier = Modifier.border(2.dp, purple500, RoundedCornerShape(4.dp)),
+                        value = name,
+                        onValueChange = { name = it })
+                    Row(horizontalArrangement = Arrangement.End) {
+                        IconButton(
+                            onClick = {
+                                if (name.isNotEmpty()) {
+                                    editorViewModel.createNewFile(
+                                        directoryPath = fileNode.getPath(root),
+                                        fileName = name
+                                    )
+                                    editorViewModel.getFileDirectory()
+                                    newFileDialog = false
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Filled.Check,
+                                contentDescription = "Create file",
+                                tint = purple500
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                newFileDialog = false
+                            }
+                        ) {
+                            Icon(
+                                Icons.Filled.Clear,
+                                contentDescription = "Cancel creation of file",
+                                tint = purple500
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -134,8 +185,8 @@ fun NewFileDialog(
                 onValueChange = { name = it },
                 label = { Text(text = "File Name") },
                 textStyle = TextStyle(Color.White),
-                activeColor = Color.Transparent,
-                singleLine = true
+                singleLine = true,
+                colors = textFieldColors()
             )
         },
         confirmButton = {
