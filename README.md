@@ -1,4 +1,4 @@
-# Mobile Language Server Protcol IDE
+# Mobile Language Server Protocol IDE
 
 A proof of concept mobile application that connects to
 my [Language Server Proxy](https://github.com/MozarellaMan/rust-lsp-proxy) that provides the ability
@@ -35,7 +35,7 @@ The minimum Android API level supported is 21.
 
 ### Apk (recommended)
 
-- Downlaod the latest APK in the [releases]() section and install on your device or emulator with ADB.
+- Downlaod the latest APK in the [releases](https://github.com/MozarellaMan/Mobile-LSP-Client/releases) section and install on your device or emulator with ADB.
 - Enter the URL of the language server proxy and connect.
 
 ### Building it yourself
