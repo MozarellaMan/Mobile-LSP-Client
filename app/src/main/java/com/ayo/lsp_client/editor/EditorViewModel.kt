@@ -1,10 +1,12 @@
 package com.ayo.lsp_client.editor
 
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ayo.lsp_client.server.parseDiagnosticJson
+import com.ayo.lsp_client.ui.theming.purple200
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
@@ -20,40 +22,18 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import lsp_proxy_tools.*
-import org.eclipse.lsp4j.Diagnostic
-import org.eclipse.lsp4j.DiagnosticSeverity
-import org.eclipse.lsp4j.SemanticTokens
-import org.eclipse.lsp4j.SemanticTokensLegend
+import org.eclipse.lsp4j.*
 
 class EditorViewModel(var address: String = "") : ViewModel() {
     val directory = MutableLiveData<FileNode>()
-    private var previousFilePath = ""
-    var currentPath: String = ""
-        set(newValue) {
-            previousFilePath = currentPath
-            field = newValue
-            if (previousFilePath.isNotBlank() && previousFilePath != field) {
-                viewModelScope.launch {
-                    outgoingSocket.send(
-                        Frame.Text(
-                            gson.toJson(
-                                languageMessageDispatch?.textDocClose(
-                                    previousFilePath
-                                )
-                            )
-                        )
-                    )
-                }
-            }
-        }
     var outgoingSocket: SendChannel<Frame> = Channel()
     var currentFile = MutableLiveData<String>()
     var languageMessageDispatch: MessageGeneratorUtil? = null
     private val gson: Gson = GsonBuilder().setLenient().create()
     private var initialized = false
-    var diagnostics = MutableLiveData<List<Diagnostic>>()
+    var diagnostics = mutableStateListOf<Diagnostic>()
+    var semanticTokens = mutableStateListOf<SemanticToken>()
     var highestDiagnosticSeverity = MutableLiveData<Color>()
-    val currentCodeInput = MutableLiveData<String>()
     val isCodeLoading = MutableLiveData<Boolean>()
     private var currentCodeSocket: DefaultWebSocketSession? = null
     private var semanticTokensLegendRequestSent = false
@@ -61,6 +41,21 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     private var semanticTokensLegendReqId: Int? = null
     private var currentFileSemanticTokensReqId: Int? = null
     private var currentSemanticTokens: SemanticTokens? = null
+    private var currentHoverInformation: Hover? = null
+    private var hoverRequestId: Int? = null
+    private var hoverReqestSent = false
+    private var previousFilePath = ""
+    var currentPath: String = ""
+        set(newValue) {
+            previousFilePath = currentPath
+            field = newValue
+            if (previousFilePath.isBlank() || previousFilePath == field) return
+            languageMessageDispatch?.let {
+                sendToSocket(it.textDocClose(previousFilePath))
+                semanticTokens.clear()
+                diagnostics.clear()
+            }
+        }
 
     suspend fun respond(webSocketMessage: String) {
         when {
@@ -84,6 +79,13 @@ class EditorViewModel(var address: String = "") : ViewModel() {
                 val responseObj = gson.fromJson(message, JsonObject::class.java)
                 val result = responseObj.get("result").toString()
                 currentSemanticTokens = gson.fromJson(result, SemanticTokens::class.java)
+                getSemanticTokens()
+            }
+            hoverRequestId != null && webSocketMessage.contains("\"id\":\"$hoverRequestId\"") -> {
+                val message = webSocketMessage.split("Content-Length:")[0]
+                val responseObj = gson.fromJson(message, JsonObject::class.java)
+                val result = responseObj.get("result").toString()
+                currentHoverInformation = gson.fromJson(result, Hover::class.java)
             }
         }
     }
@@ -102,8 +104,10 @@ class EditorViewModel(var address: String = "") : ViewModel() {
             languageMessageDispatch?.let {
                 attemptSemanticLegendRequest()
                 attemptSemanticTokensRequest()
+                getSemanticTokens()
             }
         }
+        getSemanticTokens()
     }
 
     fun runUserCode(outputList: MutableList<String>) {
@@ -111,7 +115,6 @@ class EditorViewModel(var address: String = "") : ViewModel() {
 
         viewModelScope.launch {
             currentCodeSocket?.close(CloseReason(CloseReason.Codes.GOING_AWAY, "Program restarted"))
-
             isCodeLoading.value = true
             currentCodeSocket = runFile(address, currentPath)
             if (currentCodeSocket != null) {
@@ -142,24 +145,29 @@ class EditorViewModel(var address: String = "") : ViewModel() {
 
     fun getFile() {
         languageMessageDispatch?.let {
-            if (previousFilePath != currentPath) {
-                viewModelScope.launch {
-                    outgoingSocket.send(
-                        Frame.Text(
-                            it.textDocOpen(
-                                currentPath,
-                                getFile(address, currentPath)
-                            )
-                        )
-                    )
-                }
+            if (previousFilePath == currentPath) return
+            viewModelScope.launch {
+                sendToSocket(it.textDocOpen(currentPath, getFile(address, currentPath)))
+                attemptSemanticLegendRequest()
+                attemptSemanticTokensRequest()
+                getSemanticTokens()
             }
+        }
+    }
+
+    fun getHoverInfo(line: Int, character: Int) {
+        languageMessageDispatch?.let {
+            if (address.isBlank() || address.isBlank() || currentPath.isBlank()) return
+
         }
     }
 
     fun editCurrentFile(edits: String) {
         languageMessageDispatch?.let {
+            highestDiagnosticSeverity.value = Color.White
+            diagnostics.clear()
             sendToSocket(it.textDidChange(currentPath, edits)) { currentFile.value = edits }
+            getSemanticTokens()
         }
     }
 
@@ -187,6 +195,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     fun createNewFile(directoryPath: String, fileName: String) {
         languageMessageDispatch?.let {
             sendToSocket(it.didCreateFiles(directoryPath, fileName)) { getFileDirectory() }
+            getSemanticTokens()
         }
     }
 
@@ -219,7 +228,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
 
     private fun handleDiagnosticMessage(webSocketMessage: String) {
         getHighestDiagnosticColour()
-        diagnostics.value = emptyList()
+        diagnostics.clear()
         val message = webSocketMessage.split("Content-Length:")[0]
         val diagnosticsNotification = Json.parseToJsonElement(message)
         val diagnosticsJsonParams = diagnosticsNotification.jsonObject["params"]
@@ -227,7 +236,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
             diagnosticsJsonParams?.jsonObject?.get("uri")?.jsonPrimitive?.content
         if (diagnosticJsonUri.isNullOrEmpty()) {
             return
-        } else if (diagnosticJsonUri != "${languageMessageDispatch?.baseUri}/$currentPath") {
+        } else if (!diagnosticJsonUri.endsWith(currentPath)) {
             return
         }
         val diagnosticsJsonArray = diagnosticsJsonParams.jsonObject["diagnostics"]?.jsonArray
@@ -238,7 +247,7 @@ class EditorViewModel(var address: String = "") : ViewModel() {
                 newDiagnostics.add(diagnosticObj)
             }
         }
-        diagnostics.value = newDiagnostics
+        diagnostics.addAll(newDiagnostics)
         getHighestDiagnosticColour()
     }
 
@@ -254,36 +263,50 @@ class EditorViewModel(var address: String = "") : ViewModel() {
     }
 
     private fun getHighestDiagnosticColour() {
-        if (diagnostics.value.isNullOrEmpty()) {
+        if (diagnostics.isNullOrEmpty()) {
             highestDiagnosticSeverity.value = Color.White
         }
         highestDiagnosticSeverity.value =
-            colorFromDiagnosticSeverity(diagnostics.value?.minByOrNull { it.severity.value }?.severity)
+            colorFromDiagnosticSeverity(diagnostics.minByOrNull { it.severity.value }?.severity)
     }
 
-    private fun getSemanticTokens(): List<SemanticToken> {
+    private fun getSemanticTokens() {
+        semanticTokens.clear()
+        semanticTokens.addAll(calculateSemanticTokens())
+    }
+
+    private fun calculateSemanticTokens(): List<SemanticToken> {
         if (semanticTokensLegend == null || currentSemanticTokens == null || currentFile.value == null) {
             return emptyList()
         }
-        val semanticTokens = mutableListOf<SemanticToken>()
+        val newSemanticTokens = mutableListOf<SemanticToken>()
         val data = currentSemanticTokens!!.data
 
+        var line = 0
+        var start = 0
         for (i in 0 until data.size step 5) {
-            semanticTokens.add(
+            val deltaLine = data[i]
+            val deltaStart = data[i + 1]
+            val length = data[i + 2]
+            val tokenType = semanticTokensLegend!!.tokenTypes[data[i + 3]]
+
+            if (deltaLine != 0) {
+                line += deltaLine
+                start = deltaStart
+            } else {
+                start += deltaStart
+            }
+
+            newSemanticTokens.add(
                 SemanticToken(
-                    line = data[i],
-                    startChar = data[i + 1],
-                    length = data[i + 2],
-                    tokenType = semanticTokensLegend!!.tokenTypes[data[i + 3]],
+                    range = Range(Position(line, start), Position(line, start + length)),
+                    length,
+                    tokenType,
                     tokenModifiers = null
                 )
             )
         }
-        return semanticTokens
-    }
-
-    fun setCurrentInput(input: String) {
-        currentCodeInput.value = input
+        return newSemanticTokens
     }
 
     /**
@@ -305,18 +328,31 @@ class EditorViewModel(var address: String = "") : ViewModel() {
         }
     }
 
-    fun diagnosticInFileRange(diagnostic: Diagnostic, lineIndices: List<Int>): Boolean {
+    fun diagnosticInFileRange(diagnostic: Diagnostic, lineIndices: List<Int>) =
+        inRange(diagnostic.range, lineIndices)
+
+    fun inRange(range: Range, lineIndices: List<Int>): Boolean {
         return when {
-            diagnostic.range.start.line > lineIndices.size || diagnostic.range.end.line > lineIndices.size -> {
+            range.start.line > lineIndices.size || range.end.line > lineIndices.size -> {
                 false
             }
-            diagnostic.range.start.character > currentFile.value?.length ?: 0 -> {
+            range.start.character > currentFile.value?.length ?: 0 -> {
                 false
             }
-            diagnostic.range.end.character > currentFile.value?.length ?: 0 -> {
+            range.end.character > currentFile.value?.length ?: 0 -> {
                 false
             }
             else -> true
+        }
+    }
+
+    fun colorFromSemanticToken(token: SemanticToken): Color {
+        return when (token.tokenType) {
+            "class" -> purple200
+            "type" -> Color.Blue
+            "method" -> Color.Green
+            "variable" -> Color.Cyan
+            else -> Color.White
         }
     }
 }

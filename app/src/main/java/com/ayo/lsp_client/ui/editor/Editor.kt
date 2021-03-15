@@ -1,6 +1,5 @@
 package com.ayo.lsp_client.ui.editor
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -35,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ayo.lsp_client.editor.EditorViewModel
+import com.ayo.lsp_client.editor.SemanticToken
 import com.ayo.lsp_client.server.initializeLspWebSocket
 import com.ayo.lsp_client.ui.editor.files.FilePane
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -49,7 +49,8 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     val scaffoldState = rememberScaffoldState(rememberDrawerState(DrawerValue.Closed))
     val rootDirectory: FileNode by editorViewModel.directory.observeAsState(FileNode())
     val currentFile: String by editorViewModel.currentFile.observeAsState("")
-    val diagnostics: List<Diagnostic> by editorViewModel.diagnostics.observeAsState(emptyList())
+    val diagnostics = editorViewModel.diagnostics
+    val semanticTokens = editorViewModel.semanticTokens
     val highestDiagnostic: Color by editorViewModel.highestDiagnosticSeverity.observeAsState(Color.White)
     val webSocketScope = rememberCoroutineScope()
     val listenerScope = rememberCoroutineScope()
@@ -61,6 +62,7 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
     var sessionStarted by remember { mutableStateOf(false) }
     var diagnosticsVisible by remember { mutableStateOf(false) }
     var tabIndex by remember { mutableStateOf(0) }
+
 
     if (!sessionStarted) {
         initializeLspWebSocket(
@@ -132,7 +134,13 @@ fun Editor(ipAddress: String, rootUri: String, editorViewModel: EditorViewModel 
                 }
             }
         ) {
-            MainEditorBody(diagnosticsVisible, diagnostics, editorViewModel, currentFile)
+            MainEditorBody(
+                diagnosticsVisible,
+                diagnostics,
+                semanticTokens,
+                editorViewModel,
+                currentFile
+            )
         }
     }
 }
@@ -196,13 +204,18 @@ private fun EditorAppBar(
 private fun MainEditorBody(
     diagnosticsVisible: Boolean,
     diagnostics: List<Diagnostic>,
+    semanticTokens: List<SemanticToken>,
     editorViewModel: EditorViewModel,
     currentFile: String
 ) {
     Column {
-        AnimatedVisibility(visible = diagnosticsVisible && diagnostics.isNotEmpty()) {
-            Row {
-                Column(Modifier.padding(8.dp)) {
+        Row(Modifier.animateContentSize()) {
+            if (diagnosticsVisible) {
+                Column(
+                    Modifier
+                        .padding(8.dp)
+                        .animateContentSize()
+                ) {
                     diagnostics.forEach {
                         Text(
                             text = it.message,
@@ -214,59 +227,49 @@ private fun MainEditorBody(
             }
         }
         Row {
-            TextField(
-                value = currentFile,
-                onValueChange = { editorViewModel.editCurrentFile(it) },
-                textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                visualTransformation = { text ->
-                    val lineIndexes = text.indices.filter { text[it] == '\n' || it == 0 }.map {
-                        if (it == 0) {
-                            0
-                        } else {
-                            it + 1
-                        }
-                    }
-                    TransformedText(
-                        AnnotatedString(
-                            text = text.text,
-                            spanStyles = if (text.isNotEmpty()) {
-                                diagnostics
-                                    .filter { diagnostic ->
-                                        editorViewModel.diagnosticInFileRange(
-                                            diagnostic,
-                                            lineIndexes
-                                        )
-                                    }
-                                    .map { diagnostic ->
-                                        AnnotatedString.Range(
-                                            SpanStyle(
-                                                color = if (editorViewModel.colorFromDiagnosticSeverity(
-                                                        diagnostic.severity
-                                                    ) == Color.Yellow
-                                                ) {
-                                                    Color.White.copy(alpha = 0.8f)
-                                                } else {
-                                                    editorViewModel.colorFromDiagnosticSeverity(
-                                                        diagnostic.severity
-                                                    )
-                                                },
-                                                textDecoration = TextDecoration.Underline
-                                            ),
-                                            lineIndexes.getOrElse(diagnostic.range.start.line) { 0 } + diagnostic.range.start.character,
-                                            lineIndexes.getOrElse(diagnostic.range.end.line) { 0 } + diagnostic.range.end.character
-                                        )
-                                    }
-                            } else {
-                                emptyList()
-                            }
-                        ), OffsetMapping.Identity)
-                },
-            )
+            EditorTextField(currentFile, editorViewModel, diagnostics, semanticTokens)
         }
     }
+}
+
+@Composable
+private fun EditorTextField(
+    currentFile: String,
+    editorViewModel: EditorViewModel,
+    diagnostics: List<Diagnostic>,
+    semanticTokens: List<SemanticToken>,
+) {
+    TextField(
+        value = currentFile,
+        onValueChange = { editorViewModel.editCurrentFile(it) },
+        textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
+        visualTransformation = { text ->
+            val lineIndexes = text.indices.filter { text[it] == '\n' || it == 0 }.map {
+                if (it == 0) {
+                    0
+                } else {
+                    it + 1
+                }
+            }
+            TransformedText(
+                AnnotatedString(
+                    text = text.text,
+                    spanStyles = if (text.isNotEmpty()) {
+                        styleSemanticTokens(
+                            semanticTokens,
+                            editorViewModel,
+                            lineIndexes
+                        ) + styleDiagnostics(diagnostics, editorViewModel, lineIndexes)
+                    } else {
+                        emptyList()
+                    }
+                ), OffsetMapping.Identity
+            )
+        },
+    )
 }
 
 @Composable
@@ -379,17 +382,49 @@ private fun CodeOutputTab(
     }
 }
 
-@Composable
-private fun CodeInputTab(editorViewModel: EditorViewModel) {
-    val currentInput = editorViewModel.currentCodeInput.observeAsState("")
-    Row {
-        TextField(
-            textStyle = TextStyle(color = Color.Black),
-            value = currentInput.value,
-            onValueChange = {
-                editorViewModel.setCurrentInput(it)
-            },
-            modifier = Modifier.fillMaxWidth()
+private fun styleDiagnostics(
+    diagnostics: List<Diagnostic>,
+    editorViewModel: EditorViewModel,
+    lineIndexes: List<Int>
+) = diagnostics
+    .filter { diagnostic ->
+        editorViewModel.diagnosticInFileRange(
+            diagnostic,
+            lineIndexes
         )
     }
-}
+    .map { diagnostic ->
+        AnnotatedString.Range(
+            SpanStyle(
+                color = if (editorViewModel.colorFromDiagnosticSeverity(
+                        diagnostic.severity
+                    ) == Color.Yellow
+                ) {
+                    Color.White.copy(alpha = 0.8f)
+                } else {
+                    editorViewModel.colorFromDiagnosticSeverity(
+                        diagnostic.severity
+                    )
+                },
+                textDecoration = TextDecoration.Underline
+            ),
+            lineIndexes.getOrElse(diagnostic.range.start.line) { 0 } + diagnostic.range.start.character,
+            lineIndexes.getOrElse(diagnostic.range.end.line) { 0 } + diagnostic.range.end.character
+        )
+    }
+
+private fun styleSemanticTokens(
+    semanticTokens: List<SemanticToken>,
+    editorViewModel: EditorViewModel,
+    lineIndexes: List<Int>
+) = semanticTokens
+    .filter { semanticToken -> editorViewModel.inRange(semanticToken.range, lineIndexes) }
+    .map { semanticToken ->
+        AnnotatedString.Range(
+            SpanStyle(
+                color = editorViewModel.colorFromSemanticToken(semanticToken)
+            ),
+            lineIndexes.getOrElse(semanticToken.range.start.line) { 0 } + semanticToken.range.start.character,
+            lineIndexes.getOrElse(semanticToken.range.end.line) { 0 } + semanticToken.range.end.character
+        )
+    }
